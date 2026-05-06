@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Use the provided user email as admin
+      return isSignedIn() && (
+        request.auth.token.email == "qqardasov61@gmail.com" || 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Products
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (!resource.data.isHidden || isAdmin());
+      allow list: if !resource.data.isHidden || isAdmin();
+      allow create: if isAdmin() && isValidId(productId);
+      allow update, delete: if isAdmin() && isValidId(productId);
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId);
+      allow list: if true;
+      allow create: if isAdmin() && isValidId(categoryId);
+      allow update, delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow create: if true;
+      allow get: if (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid)) && isValidId(orderId);
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && (resource == null || resource.data.userId == request.auth.uid));
+      allow update, delete: if isAdmin() && isValidId(orderId);
+    }
+
+    // Notifications
+    match /notifications/{noteId} {
+      allow get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid)) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if (isSignedIn() && request.auth.uid == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Settings
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(settingsId);
+    }
+
+    // Banners
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(bannerId);
+    }
+
+    // Promo Codes
+    match /promoCodes/{codeId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if isAdmin() && isValidId(codeId);
+    }
+  }
+}

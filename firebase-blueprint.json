@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Store items available for purchase",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "discountPrice": { "type": "number" },
+        "stock": { "type": "integer" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "videoUrl": { "type": "string" },
+        "logoRequired": { "type": "boolean" },
+        "isHidden": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "price", "stock", "images"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product categories",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["name", "image"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase records",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "note": { "type": "string" },
+        "items": { "type": "array" },
+        "totalPrice": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "status": { "type": "string", "enum": ["Yeni", "Hazırlanır", "Yoldadır", "Tamamlandı"] },
+        "logoUrl": { "type": "string" },
+        "receiptUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "phone", "address", "items", "totalPrice", "paymentMethod", "status", "createdAt"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application configuration",
+      "type": "object",
+      "properties": {
+        "cardNumber": { "type": "string" },
+        "tawkId": { "type": "string" },
+        "telegramToken": { "type": "string" },
+        "telegramChatId": { "type": "string" }
+      }
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Homepage hero banners",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "order": { "type": "integer" },
+        "titleSize": { "type": "string" },
+        "titleColor": { "type": "string" },
+        "subtitleSize": { "type": "string" },
+        "subtitleColor": { "type": "string" }
+      },
+      "required": ["title", "imageUrl"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Customer profiles",
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "phone": { "type": "string" },
+        "wishlist": { "type": "array", "items": { "type": "string" } },
+        "cart": { "type": "array" },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["firstName", "lastName", "phone"]
+    },
+    "PromoCode": {
+      "title": "Promo Code",
+      "description": "Discount codes",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "type": { "type": "string", "enum": ["percentage", "fixed"] },
+        "value": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "expiryDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "type", "value", "isActive"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System or admin alerts for users",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["order_status", "promotion", "system"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/notifications/{noteId}": {
+      "schema": "Notification",
+      "description": "User specific notifications"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of product categories"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
+    },
+    "/banners/{bannerId}": {
+      "schema": "Banner",
+      "description": "Collection of homepage banners"
+    },
+    "/settings/{settingsId}": {
+      "schema": "Settings",
+      "description": "Application settings (e.g., config/global)"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Customer profiles linked to Auth UID"
+    },
+    "/promoCodes/{promoId}": {
+      "schema": "PromoCode",
+      "description": "Available discount codes"
+    }
+  }
+}

@@ -63,8 +63,8 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false);
   const [cardNumber, setCardNumber] = useState('Yüklənir...');
   const [telegramConfig, setTelegramConfig] = useState({
-    token: '8673904341:AAEapa7zbc91pB6IZa1qvsgn_MTHu1BaqBg',
-    chatId: '6729560415'
+    token: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
+    chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
   });
 
   const [promoCode, setPromoCode] = useState('');
@@ -94,7 +94,7 @@ export default function CheckoutPage() {
         const docSnap = await getDoc(doc(db, 'settings', 'global'));
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setCardNumber(data.cardNumber || '4127 0000 0000 0000');
+          setCardNumber(data.cardNumber || '');
           setTelegramConfig({
             token: data.telegramToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
             chatId: data.telegramChatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || ''

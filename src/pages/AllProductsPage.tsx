@@ -23,7 +23,6 @@ export default function AllProductsPage() {
     
     const qProducts = query(
       collection(db, 'products'),
-      where('isHidden', '==', false),
       orderBy('createdAt', 'desc')
     );
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {

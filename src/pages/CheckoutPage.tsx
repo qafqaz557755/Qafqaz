@@ -309,7 +309,14 @@ ${orderData.promoCode ? `<b>🎟️ Promo:</b> ${orderData.promoCode}` : ''}
       setIsSuccess(true);
       clearCart();
     } catch (error: any) {
-      alert(error.message || 'Sifariş zamanı xəta baş verdi.');
+      console.error('Checkout error:', error);
+      let errorMessage = 'Sifariş zamanı xəta baş verdi.';
+      if (error.message?.includes('permissions')) {
+        errorMessage = 'Xəta: Giriş icazəsi yoxdur. Zəhmət olmasa interneti yoxlayın və ya admin ilə əlaqə saxlayın.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
       setSubmitStatus('');

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigFallback from '../../firebase-applet-config.json';
 

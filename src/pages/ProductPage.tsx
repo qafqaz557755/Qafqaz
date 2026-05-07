@@ -38,7 +38,6 @@ export default function ProductPage() {
           const q = query(
             collection(db, 'products'), 
             where('category', '==', productData.category),
-            where('isHidden', '==', false),
             limit(4)
           );
           const similarSnap = await getDocs(q);

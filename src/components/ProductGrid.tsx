@@ -162,7 +162,6 @@ export default function ProductGrid({ onProductClick }: { onProductClick: (produ
   useEffect(() => {
     const q = query(
       collection(db, 'products'), 
-      where('isHidden', '==', false),
       orderBy('createdAt', 'desc'),
       fsLimit(displayLimit)
     );

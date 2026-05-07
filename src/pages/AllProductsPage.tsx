@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ProductCard } from '../components/ProductGrid';
 import { cn } from '../lib/utils';
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product, Category } from '../types';
 
 export default function AllProductsPage() {
@@ -32,12 +32,12 @@ export default function AllProductsPage() {
         image: doc.data().images?.[0] || '' 
       } as Product)));
       setLoading(false);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'products'));
 
     const qCats = query(collection(db, 'categories'), orderBy('name', 'asc'));
     const unsubCats = onSnapshot(qCats, (snapshot) => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'categories'));
 
     return () => {
       unsubProducts();

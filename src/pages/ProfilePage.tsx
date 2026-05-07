@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   collection, 
   query, 
@@ -10,7 +10,10 @@ import {
   getDocs, 
   orderBy, 
   doc, 
-  getDoc 
+  getDoc,
+  onSnapshot,
+  updateDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { 
@@ -29,7 +32,6 @@ import {
   MailOpen
 } from 'lucide-react';
 import { Product } from '../types';
-import { onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
 export default function ProfilePage() {
@@ -60,7 +62,7 @@ export default function ProfilePage() {
       );
       const unsubscribeNotes = onSnapshot(q, (snapshot) => {
         setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'notifications'));
 
       return () => unsubscribeNotes();
     }
@@ -68,15 +70,16 @@ export default function ProfilePage() {
 
   const fetchOrders = async () => {
     try {
+      if (!user) return;
       const q = query(
         collection(db, 'orders'),
-        where('userId', '==', user?.uid),
+        where('userId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
       setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) {
-      console.error('Error fetching orders:', err);
+      handleFirestoreError(err, OperationType.GET, 'orders');
     }
   };
 
@@ -98,7 +101,7 @@ export default function ProfilePage() {
       setWishlistProducts(products);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching wishlist:', err);
+      handleFirestoreError(err, OperationType.GET, 'products');
       setLoading(false);
     }
   };

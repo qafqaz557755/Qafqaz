@@ -5,7 +5,7 @@ import { cn, getYoutubeId } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function Hero() {
           }
         ]);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'banners'));
     return unsubscribe;
   }, []);
 

@@ -7,7 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import CartDrawer from './CartDrawer';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
 
 export default function Navbar() {
@@ -27,13 +27,13 @@ export default function Navbar() {
     const q = query(collection(db, 'categories'), orderBy('name', 'asc'));
     const unsubscribeCats = onSnapshot(q, (snapshot) => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'categories'));
 
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
         setSettings(docSnap.data());
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/global'));
 
     return () => {
       unsubscribeCats();

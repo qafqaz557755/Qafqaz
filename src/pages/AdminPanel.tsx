@@ -52,50 +52,12 @@ import {
   signOut, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 import { CreditCard } from 'lucide-react';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'Qafqaz1234';
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'qqardasov61@gmail.com';
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-  }
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-}
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -509,11 +471,11 @@ function AdminProducts() {
                       <input required type="number" value={formData.stock} onChange={e => setFormData({...formData, stock: Number(e.target.value)})} className="px-6 py-3 bg-off-white rounded-xl outline-none" />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">VİDEO URL (YouTube)</label>
-                      <div className="relative">
-                        <input type="text" value={formData.videoUrl} onChange={e => setFormData({...formData, videoUrl: e.target.value})} className="w-full px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://youtube.com/..." />
-                        {formData.videoUrl && <Video size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500" />}
-                      </div>
+                       <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">VİDEO URL (YouTube və ya Cloudinary)</label>
+                       <div className="relative">
+                         <input type="text" value={formData.videoUrl} onChange={e => setFormData({...formData, videoUrl: e.target.value})} className="w-full px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://youtube.com/... və ya https://res.cloudinary.com/..." />
+                         {formData.videoUrl && (getYoutubeId(formData.videoUrl) ? <Video size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500" /> : <Video size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-blue" />)}
+                       </div>
                     </div>
                     <div className="md:col-span-2 flex flex-col gap-2">
                       <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">ŞƏKİL LİNKLƏRİ (Vergüllə ayır)</label>
@@ -572,7 +534,7 @@ function AdminProducts() {
                     allow="autoplay; encrypted-media"
                   />
                 ) : (
-                  <video src={product.videoUrl} muted className="w-full h-full object-cover" />
+                  <video src={product.videoUrl} muted autoPlay loop playsInline className="w-full h-full object-cover" />
                 )
               ) : (
                 <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -620,7 +582,7 @@ function AdminOrders() {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'orders'));
     return () => unsubscribe();
   }, []);
 
@@ -740,7 +702,7 @@ function AdminCategories() {
     const q = query(collection(db, 'categories'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'categories'));
     return () => unsubscribe();
   }, []);
 
@@ -1051,8 +1013,8 @@ function AdminBanners() {
                      <input value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://..." />
                     </div>
                     <div className="flex flex-col gap-2">
-                     <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">Video URL (Arxa plan)</label>
-                     <input value={formData.videoUrl} onChange={e => setFormData({...formData, videoUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://..." />
+                      <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">Video URL (Arxa plan - YouTube və ya Cloudinary)</label>
+                      <input value={formData.videoUrl} onChange={e => setFormData({...formData, videoUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://youtube.com/... və ya https://res.cloudinary.com/..." />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

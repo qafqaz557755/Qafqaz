@@ -3,8 +3,8 @@ import {
   onAuthStateChanged, 
   User as FirebaseUser 
 } from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface UserData {
   uid: string;
@@ -43,8 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUserData(null);
           }
         } catch (err) {
-          console.error('UserData fetch error:', err);
-          setUserData(null);
+          handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
         }
       } else {
         setUserData(null);

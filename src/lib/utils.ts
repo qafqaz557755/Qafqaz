@@ -10,3 +10,11 @@ export const getYoutubeId = (url: string) => {
   const match = url.match(regExp);
   return (match && match[1].length === 11) ? match[1] : null;
 };
+
+export const isCloudinaryVideo = (url: string) => {
+  return url.toLowerCase().includes('cloudinary.com') && 
+    (url.toLowerCase().includes('/video/upload/') || 
+     url.toLowerCase().endsWith('.mp4') || 
+     url.toLowerCase().endsWith('.webm') || 
+     url.toLowerCase().endsWith('.mov'));
+};

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
-import { Plus, Minus, Heart } from 'lucide-react';
+import { Plus, Minus, Heart, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -72,8 +72,13 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
             product.stock > 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"
           )}>
             Stokda: {product.stock} ədəd
-          </div>
-        </div>
+           </div>
+           {product.videoUrl && (
+             <div className="bg-brand-blue/10 text-brand-blue px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest w-fit shadow-sm flex items-center gap-1 border border-brand-blue/20">
+               <Video size={8} /> Video
+             </div>
+           )}
+         </div>
       </div>
       
         <div className="flex flex-col gap-1 px-1">
@@ -176,6 +181,9 @@ export default function ProductGrid({ onProductClick }: { onProductClick: (produ
         } as Product;
       });
       setProducts(fetchedProducts);
+      setLoading(false);
+    }, (error) => {
+      console.error("Product fetch error:", error);
       setLoading(false);
     });
 

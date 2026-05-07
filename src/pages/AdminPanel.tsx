@@ -56,8 +56,8 @@ import { db, auth } from '../lib/firebase';
 import { Product } from '../types';
 import { CreditCard } from 'lucide-react';
 
-const ADMIN_PASSWORD = 'Qafqaz1234';
-const ADMIN_EMAIL = 'qqardasov61@gmail.com';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'Qafqaz1234';
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'qqardasov61@gmail.com';
 
 enum OperationType {
   CREATE = 'create',
@@ -96,6 +96,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
 }
+
+const getYoutubeId = (url: string) => {
+  const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[1].length === 11) ? match[1] : null;
+};
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -558,7 +564,19 @@ function AdminProducts() {
         {products.map(product => (
           <div key={product.id} className={cn("bg-white p-6 rounded-[2.5rem] shadow-sm border border-black/5 flex flex-col gap-4 group", product.isHidden && "opacity-50 grayscale")}>
             <div className="relative aspect-square rounded-[2rem] overflow-hidden bg-off-white">
-              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              {product.videoUrl ? (
+                getYoutubeId(product.videoUrl) ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYoutubeId(product.videoUrl)}?mute=1&controls=0`}
+                    className="w-full h-full border-none pointer-events-none"
+                    allow="autoplay; encrypted-media"
+                  />
+                ) : (
+                  <video src={product.videoUrl} muted className="w-full h-full object-cover" />
+                )
+              ) : (
+                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              )}
               {product.isHidden && <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-black text-xs uppercase tracking-widest">GİZLİ</div>}
               {product.logoRequired && <div className="absolute top-4 right-4 bg-brand-blue text-white p-2 rounded-full shadow-lg"><Layers size={14} /></div>}
             </div>
@@ -919,10 +937,12 @@ function AdminBanners() {
   const [banners, setBanners] = useState<any[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
     imageUrl: '',
+    videoUrl: '',
     order: 0,
     titleSize: 'text-4xl',
     titleColor: '#000000',
@@ -959,6 +979,7 @@ function AdminBanners() {
         title: '',
         subtitle: '',
         imageUrl: '',
+        videoUrl: '',
         order: 0,
         titleSize: 'text-4xl',
         titleColor: '#000000',
@@ -977,6 +998,7 @@ function AdminBanners() {
       title: banner.title || '',
       subtitle: banner.subtitle || '',
       imageUrl: banner.imageUrl || '',
+      videoUrl: banner.videoUrl || '',
       order: banner.order || 0,
       titleSize: banner.titleSize || 'text-4xl',
       titleColor: banner.titleColor || '#000000',
@@ -1023,9 +1045,15 @@ function AdminBanners() {
             <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-black/5 mb-8">
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col gap-6">
-                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">Şəkil URL</label>
-                    <input required value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" />
+                   <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">Şəkil URL</label>
+                     <input value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://..." />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest ml-4">Video URL (Arxa plan)</label>
+                     <input value={formData.videoUrl} onChange={e => setFormData({...formData, videoUrl: e.target.value})} className="px-6 py-3 bg-off-white rounded-xl outline-none" placeholder="https://..." />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
@@ -1077,8 +1105,22 @@ function AdminBanners() {
 
                 <div className="flex flex-col gap-6">
                   <label className="text-[10px] font-bold text-charcoal/40 uppercase tracking-widest">Önizləmə</label>
-                  <div className="relative aspect-video rounded-[2.5rem] overflow-hidden bg-off-white shadow-inner flex items-center justify-center text-center p-8">
-                    {formData.imageUrl && <img src={formData.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+                   <div className="relative aspect-video rounded-[2.5rem] overflow-hidden bg-off-white shadow-inner flex items-center justify-center text-center p-8">
+                    {formData.videoUrl ? (
+                      getYoutubeId(formData.videoUrl) ? (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${getYoutubeId(formData.videoUrl)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${getYoutubeId(formData.videoUrl)}&modestbranding=1`}
+                            className="w-full h-full border-none scale-125"
+                            allow="autoplay; encrypted-media"
+                          />
+                        </div>
+                      ) : (
+                        <video src={formData.videoUrl} autoPlay muted loop className="absolute inset-0 w-full h-full object-cover" />
+                      )
+                    ) : formData.imageUrl ? (
+                      <img src={formData.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : null}
                     <div className="relative z-10">
                       <h2 style={{ color: formData.titleColor }} className={cn("font-black tracking-tighter mb-2", formData.titleSize)}>{formData.title || 'Başlıq'}</h2>
                       <p style={{ color: formData.subtitleColor }} className={cn("font-bold", formData.subtitleSize)}>{formData.subtitle || 'Alt Yazı'}</p>
@@ -1099,7 +1141,19 @@ function AdminBanners() {
         {banners.map(banner => (
           <div key={banner.id} className="bg-white rounded-[2.5rem] border border-black/5 p-6 flex flex-col md:flex-row gap-8 items-center group relative overflow-hidden">
             <div className="w-full md:w-48 aspect-video rounded-2xl overflow-hidden bg-off-white shadow-sm shrink-0">
-              <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              {banner.videoUrl ? (
+                getYoutubeId(banner.videoUrl) ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYoutubeId(banner.videoUrl)}?mute=1&controls=0`}
+                    className="w-full h-full border-none"
+                    allow="autoplay; encrypted-media"
+                  />
+                ) : (
+                  <video src={banner.videoUrl} autoPlay muted loop className="w-full h-full object-cover" />
+                )
+              ) : (
+                <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              )}
             </div>
             <div className="flex-grow flex flex-col gap-2 min-w-0">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-blue">Sıra: #{banner.order}</span>
@@ -1249,8 +1303,8 @@ function AdminSettings() {
         const data = docSnap.data();
         setCardNumber(data.cardNumber || '');
         setTawkId(data.tawkId || '');
-        setTelegramToken(data.telegramToken || '');
-        setTelegramChatId(data.telegramChatId || '');
+        setTelegramToken(data.telegramToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '');
+        setTelegramChatId(data.telegramChatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || '');
         setShopName(data.shopName || '');
         setTopBarText(data.topBarText || '');
       }

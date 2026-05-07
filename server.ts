@@ -23,8 +23,8 @@ async function startServer() {
     const startTime = Date.now();
     try {
       const { message, token: customToken, chatId: customChatId } = req.body;
-      const token = customToken || process.env.TELEGRAM_BOT_TOKEN || '8673904341:AAEapa7zbc91pB6IZa1qvsgn_MTHu1BaqBg';
-      const chatId = customChatId || process.env.TELEGRAM_CHAT_ID || '6729560415';
+      const token = customToken || process.env.VITE_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = customChatId || process.env.VITE_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
       if (!token || !chatId) {
         return res.status(500).json({ error: "Telegram config missing" });
@@ -52,8 +52,8 @@ async function startServer() {
     const startTime = Date.now();
     try {
       const { photo: base64Photo, caption, token: customToken, chatId: customChatId } = req.body;
-      const token = customToken || process.env.TELEGRAM_BOT_TOKEN || '8673904341:AAEapa7zbc91pB6IZa1qvsgn_MTHu1BaqBg';
-      const chatId = customChatId || process.env.TELEGRAM_CHAT_ID || '6729560415';
+      const token = customToken || process.env.VITE_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const chatId = customChatId || process.env.VITE_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
       if (!token || !chatId || !base64Photo) {
         return res.status(400).json({ error: "Missing required fields" });

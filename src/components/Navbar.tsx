@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, Menu, X, ChevronDown, LayoutGrid } from 'lucide-react';
+import { Search, ShoppingBag, Menu, X, ChevronDown, LayoutGrid, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import CartDrawer from './CartDrawer';
 import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -11,6 +12,7 @@ import { Category } from '../types';
 
 export default function Navbar() {
   const { totalItems } = useCart();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -141,6 +143,14 @@ export default function Navbar() {
               )}
             </AnimatePresence>
             
+            <Link 
+              to={user ? "/profile" : "/auth"}
+              className="p-2 hover:bg-black/5 rounded-full transition-colors relative"
+              id="profile-btn"
+            >
+              <User size={20} className={cn(user ? "text-brand-blue" : "text-charcoal")} />
+            </Link>
+
             <button 
               onClick={() => setIsCartOpen(true)}
               className="p-2 hover:bg-black/5 rounded-full transition-colors relative" 

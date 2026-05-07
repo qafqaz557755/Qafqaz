@@ -19,7 +19,6 @@ export default function AuthPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: '',
     phone: '',
     password: ''
   });
@@ -28,6 +27,9 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Internal identifier for Firebase Auth
+    const emailIdentifier = `${formData.phone.replace(/[\s+()-]/g, '')}@puerly.local`;
 
     // Validation
     if (!isLogin) {
@@ -47,9 +49,9 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        await signInWithEmailAndPassword(auth, emailIdentifier, formData.password);
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        const userCredential = await createUserWithEmailAndPassword(auth, emailIdentifier, formData.password);
         const user = userCredential.user;
 
         // Update profile
@@ -62,7 +64,7 @@ export default function AuthPage() {
           uid: user.uid,
           firstName: formData.firstName,
           lastName: formData.lastName,
-          email: formData.email,
+          email: `${formData.phone}@puerly.local`,
           phone: formData.phone,
           role: 'customer',
           wishlist: [],
@@ -72,7 +74,15 @@ export default function AuthPage() {
       }
       navigate('/profile');
     } catch (err: any) {
-      setError(err.message || 'Xəta baş verdi');
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('Firebase konsolunda "Email/Password" girişi aktiv edilməyib. Zəhmət olmasa Authentication bölməsindən onu aktiv edin.');
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Telefon nömrəsi və ya şifrə yanlışdır.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('Bu telefon nömrəsi ilə artıq qeydiyyatdan keçilib.');
+      } else {
+        setError(err.message || 'Xəta baş verdi');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,6 +106,18 @@ export default function AuthPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/40" />
+              <input
+                type="text"
+                placeholder="Telefon nömrəsi"
+                required
+                className="w-full pl-11 pr-4 py-3 bg-off-white/50 border border-charcoal/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-blue/20 transition-all text-sm"
+                value={formData.phone}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+
             {!isLogin && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
@@ -119,32 +141,6 @@ export default function AuthPage() {
                     onChange={e => setFormData({ ...formData, lastName: e.target.value })}
                   />
                 </div>
-              </div>
-            )}
-
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/40" />
-              <input
-                type="email"
-                placeholder="E-poçt"
-                required
-                className="w-full pl-11 pr-4 py-3 bg-off-white/50 border border-charcoal/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-blue/20 transition-all text-sm"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
-            {!isLogin && (
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/40" />
-                <input
-                  type="text"
-                  placeholder="Telefon"
-                  required
-                  className="w-full pl-11 pr-4 py-3 bg-off-white/50 border border-charcoal/5 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand-blue/20 transition-all text-sm"
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                />
               </div>
             )}
 

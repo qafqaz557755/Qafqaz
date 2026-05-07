@@ -85,12 +85,23 @@ export default function ProductPage() {
     setQuantity(1);
   };
 
-  const gallery = product.images || [product.image];
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[1].length === 11) ? match[1] : null;
+  };
+
+  const images = product.images || [product.image];
+  const mediaItems = [
+    ...images.map(url => ({ type: 'image' as const, url })),
+    ...(product.videoUrl ? [{ type: 'video' as const, url: product.videoUrl }] : [])
+  ];
+  
   const currentPrice = product.price;
   const totalPrice = (currentPrice * quantity).toFixed(2);
 
-  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % gallery.length);
-  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + gallery.length) % gallery.length);
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % mediaItems.length);
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
 
   return (
     <div className="min-h-screen bg-off-white pt-24 pb-12 px-4 md:px-6">
@@ -119,20 +130,46 @@ export default function ProductPage() {
             </button>
 
             <AnimatePresence mode="wait">
-              <motion.img
+              <motion.div
                 key={currentImageIndex}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                src={gallery[currentImageIndex]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+                className="w-full h-full"
+              >
+                {mediaItems[currentImageIndex].type === 'video' ? (
+                  getYoutubeId(mediaItems[currentImageIndex].url) ? (
+                    <div className="w-full h-full relative">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${getYoutubeId(mediaItems[currentImageIndex].url)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(mediaItems[currentImageIndex].url)}&controls=0&modestbranding=1&rel=0`}
+                        className="w-full h-full border-none"
+                        allow="autoplay; encrypted-media"
+                        title="Product Video"
+                      />
+                    </div>
+                  ) : (
+                    <video
+                      src={mediaItems[currentImageIndex].url}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  )
+                ) : (
+                  <img
+                    src={mediaItems[currentImageIndex].url}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+              </motion.div>
             </AnimatePresence>
 
-            {gallery.length > 1 && (
+            {mediaItems.length > 1 && (
               <>
                 <button 
                   onClick={prevImage}
@@ -148,15 +185,21 @@ export default function ProductPage() {
                 </button>
                 
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-                  {gallery.map((_, i) => (
+                  {mediaItems.map((item, i) => (
                     <button
                       key={i}
                       onClick={() => setCurrentImageIndex(i)}
                       className={cn(
-                        "transition-all duration-500 rounded-full",
+                        "transition-all duration-500 rounded-full flex items-center justify-center",
                         currentImageIndex === i ? "w-8 h-2 bg-brand-blue" : "w-2 h-2 bg-black/20"
                       )}
-                    />
+                    >
+                      {item.type === 'video' && currentImageIndex !== i && (
+                        <div className="absolute -top-6 bg-white/80 rounded-full p-1 border border-black/5">
+                          <Play size={8} fill="currentColor" />
+                        </div>
+                      )}
+                    </button>
                   ))}
                 </div>
               </>
@@ -190,20 +233,6 @@ export default function ProductPage() {
               <p className="text-lg text-charcoal/60 leading-relaxed max-w-lg">
                 {product.description}
               </p>
-              
-              {product.videoUrl && (
-                <a 
-                  href={product.videoUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-6 py-4 bg-red-50 text-red-600 rounded-2xl w-fit font-bold text-sm hover:bg-red-100 transition-all border border-red-100"
-                >
-                  <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center">
-                    <Play size={16} fill="currentColor" />
-                  </div>
-                  Məhsulun Videosu
-                </a>
-              )}
             </div>
 
             <div className="mt-12 flex flex-col gap-8">

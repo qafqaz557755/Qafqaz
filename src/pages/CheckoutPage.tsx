@@ -96,8 +96,8 @@ export default function CheckoutPage() {
           const data = docSnap.data();
           setCardNumber(data.cardNumber || '4127 0000 0000 0000');
           setTelegramConfig({
-            token: data.telegramToken || '8673904341:AAEapa7zbc91pB6IZa1qvsgn_MTHu1BaqBg',
-            chatId: data.telegramChatId || '6729560415'
+            token: data.telegramToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
+            chatId: data.telegramChatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
           });
         }
       } catch (err) {

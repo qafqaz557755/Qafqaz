@@ -9,9 +9,9 @@ export default function TawkChat() {
     const fetchId = async () => {
       const docSnap = await getDoc(doc(db, 'settings', 'global'));
       if (docSnap.exists()) {
-        setTawkId(docSnap.data().tawkId || '69efd3426757b41c3bd093e6');
+        setTawkId(docSnap.data().tawkId || import.meta.env.VITE_TAWK_ID || '69efd3426757b41c3bd093e6');
       } else {
-        setTawkId('69efd3426757b41c3bd093e6');
+        setTawkId(import.meta.env.VITE_TAWK_ID || '69efd3426757b41c3bd093e6');
       }
     };
     fetchId();

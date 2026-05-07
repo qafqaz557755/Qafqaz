@@ -72,9 +72,10 @@
         "titleSize": { "type": "string" },
         "titleColor": { "type": "string" },
         "subtitleSize": { "type": "string" },
-        "subtitleColor": { "type": "string" }
+        "subtitleColor": { "type": "string" },
+        "videoUrl": { "type": "string" }
       },
-      "required": ["title", "imageUrl"]
+      "required": ["title"]
     },
     "User": {
       "title": "User",

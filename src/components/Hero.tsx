@@ -40,6 +40,12 @@ export default function Hero() {
     return () => clearInterval(timer);
   }, [slides]);
 
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[1].length === 11) ? match[1] : null;
+  };
+
   if (slides.length === 0) return null;
 
   return (
@@ -54,12 +60,34 @@ export default function Hero() {
             transition={{ duration: 1 }}
             className="absolute inset-0"
           >
-            <img
-              src={slides[current].imageUrl}
-              alt={slides[current].title}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+            {slides[current].videoUrl ? (
+              getYoutubeId(slides[current].videoUrl) ? (
+                <div className="absolute inset-0 pointer-events-none">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${getYoutubeId(slides[current].videoUrl)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${getYoutubeId(slides[current].videoUrl)}&modestbranding=1&showinfo=0&rel=0&iv_load_policy=3&enablejsapi=1`}
+                    className="absolute top-1/2 left-1/2 w-[115%] h-[115%] -translate-x-1/2 -translate-y-1/2 border-none"
+                    allow="autoplay; encrypted-media"
+                    title="Background Video"
+                  />
+                </div>
+              ) : (
+                <video
+                  src={slides[current].videoUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              )
+            ) : (
+              <img
+                src={slides[current].imageUrl}
+                alt={slides[current].title}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            )}
             <div className="absolute inset-0 bg-black/20" />
             
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-6">

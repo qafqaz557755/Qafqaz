@@ -32,7 +32,7 @@ import {
   Type
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '../lib/utils';
+import { cn, getYoutubeId } from '../lib/utils';
 import { 
   collection, 
   onSnapshot, 
@@ -97,12 +97,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Firestore Error: ', JSON.stringify(errInfo));
 }
 
-const getYoutubeId = (url: string) => {
-  const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[1].length === 11) ? match[1] : null;
-};
-
 export default function AdminPanel() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Password check
@@ -142,9 +136,15 @@ export default function AdminPanel() {
         await signOut(auth);
         alert('Bu email ilə daxil olmaq olmaz! Yalnız ' + ADMIN_EMAIL + ' icazəlidir.');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Giriş xətası!');
+    } catch (error: any) {
+      console.error('Login error detail:', error);
+      if (error.code === 'auth/unauthorized-domain') {
+        alert('Xəta: Bu domen Firebase tərəfindən icazəli deyil. Firebase Console-da ' + window.location.hostname + ' domenini əlavə edin.');
+      } else if (error.code === 'auth/popup-blocked') {
+        alert('Xəta: Brauzer pəncərəni (popup) blokladı. İcazə verin və yenidən yoxlayın.');
+      } else {
+        alert('Giriş xətası! (Kod: ' + (error.code || 'unknown') + ')');
+      }
     }
   };
 

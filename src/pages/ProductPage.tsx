@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Minus, Plus, ArrowLeft, ShoppingBag, Youtube, Play } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, getYoutubeId } from '../lib/utils';
 import { useCart } from '../context/CartContext';
 import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -83,12 +83,6 @@ export default function ProductPage() {
     const currentQtyInCart = cartItem?.quantity || 0;
     updateQuantity(product.id, currentQtyInCart + quantity);
     setQuantity(1);
-  };
-
-  const getYoutubeId = (url: string) => {
-    const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[1].length === 11) ? match[1] : null;
   };
 
   const images = product.images || [product.image];

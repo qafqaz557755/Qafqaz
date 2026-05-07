@@ -14,12 +14,12 @@ service cloud.firestore {
       // Use the provided user email as admin
       return isSignedIn() && (
         request.auth.token.email == "qqardasov61@gmail.com" || 
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        request.auth.token.email_verified == true && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     // Products
@@ -27,7 +27,14 @@ service cloud.firestore {
       allow get: if isValidId(productId) && (!resource.data.isHidden || isAdmin());
       allow list: if !resource.data.isHidden || isAdmin();
       allow create: if isAdmin() && isValidId(productId);
-      allow update, delete: if isAdmin() && isValidId(productId);
+      allow update: if (isAdmin() || (
+        // Allow anyone to reduce stock (for orders)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
+        request.resource.data.stock is number &&
+        request.resource.data.stock >= 0 &&
+        request.resource.data.stock < resource.data.stock
+      )) && isValidId(productId);
+      allow delete: if isAdmin() && isValidId(productId);
     }
 
     // Categories

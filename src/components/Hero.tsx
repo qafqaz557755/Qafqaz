@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, getYoutubeId } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -39,12 +39,6 @@ export default function Hero() {
     }, 5000);
     return () => clearInterval(timer);
   }, [slides]);
-
-  const getYoutubeId = (url: string) => {
-    const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[1].length === 11) ? match[1] : null;
-  };
 
   if (slides.length === 0) return null;
 

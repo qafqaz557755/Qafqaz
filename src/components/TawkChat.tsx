@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function TawkChat() {
   const [tawkId, setTawkId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchId = async () => {
-      const docSnap = await getDoc(doc(db, 'settings', 'global'));
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
         setTawkId(docSnap.data().tawkId || import.meta.env.VITE_TAWK_ID || '69efd3426757b41c3bd093e6');
       } else {
         setTawkId(import.meta.env.VITE_TAWK_ID || '69efd3426757b41c3bd093e6');
       }
-    };
-    fetchId();
+    });
+    return unsub;
   }, []);
 
   useEffect(() => {

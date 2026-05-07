@@ -27,37 +27,61 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user, userData } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load from local storage or cloud
+  // 1. Initial Load from Local Storage
   useEffect(() => {
-    if (userData) {
-      setWishlist(userData.wishlist || []);
-      // Pre-fill cart if it exists in DB (optional: merge with local)
-      if (userData.cart && items.length === 0) {
+    const savedCart = localStorage.getItem('cart');
+    const savedWishlist = localStorage.getItem('wishlist');
+    if (savedCart) {
+      try {
+        setItems(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Cart parse error", e);
+      }
+    }
+    if (savedWishlist) {
+      try {
+        setWishlist(JSON.parse(savedWishlist));
+      } catch (e) {
+        console.error("Wishlist parse error", e);
+      }
+    }
+  }, []);
+
+  // 2. Initial Load from Cloud (once per session/user)
+  useEffect(() => {
+    if (userData && !isInitialized) {
+      if (userData.wishlist) setWishlist(userData.wishlist);
+      if (userData.cart && userData.cart.length > 0) {
         setItems(userData.cart);
       }
-    } else {
-      const savedCart = localStorage.getItem('cart');
-      const savedWishlist = localStorage.getItem('wishlist');
-      if (savedCart) setItems(JSON.parse(savedCart));
-      if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+      setIsInitialized(true);
+    } else if (!user) {
+      setIsInitialized(false);
     }
-  }, [userData]);
+  }, [userData, user, isInitialized]);
 
-  // Save to local storage or cloud
+  // 3. Save to Local/Cloud (debounced)
   useEffect(() => {
-    if (!userData) {
+    if (user && isInitialized) {
+      const timeout = setTimeout(() => {
+        const userRef = doc(db, 'users', user.uid);
+        updateDoc(userRef, { 
+          cart: items,
+          wishlist: wishlist
+        }).catch(err => {
+          if (!err.message?.includes('offline')) {
+            console.error('Cart sync error:', err);
+          }
+        });
+      }, 1000);
+      return () => clearTimeout(timeout);
+    } else if (!user) {
       localStorage.setItem('cart', JSON.stringify(items));
       localStorage.setItem('wishlist', JSON.stringify(wishlist));
-    } else {
-       // Persist to user doc
-       const userRef = doc(db, 'users', user!.uid);
-       updateDoc(userRef, { 
-         cart: items,
-         wishlist: wishlist
-       }).catch(console.error);
     }
-  }, [items, wishlist, userData, user]);
+  }, [items, wishlist, user, isInitialized]);
 
   const addToCart = (product: Product) => {
     setItems(prev => {

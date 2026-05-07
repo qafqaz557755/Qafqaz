@@ -346,9 +346,21 @@ function AdminProducts() {
   });
 
   useEffect(() => {
-    const qProducts = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const qProducts = query(collection(db, 'products'));
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const allProducts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date(0)
+        };
+      }).sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return dateB - dateA;
+      });
+      setProducts(allProducts);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'products'));
 
     const qCats = query(collection(db, 'categories'), orderBy('name', 'asc'));
@@ -1258,9 +1270,7 @@ function AdminSettings() {
   const [topBarText, setTopBarText] = useState('');
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const docRef = doc(db, 'settings', 'global');
-      const docSnap = await getDoc(docRef);
+    const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setCardNumber(data.cardNumber || '');
@@ -1270,8 +1280,8 @@ function AdminSettings() {
         setShopName(data.shopName || '');
         setTopBarText(data.topBarText || '');
       }
-    };
-    fetchSettings();
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/global'));
+    return unsub;
   }, []);
 
   const saveSettings = async () => {

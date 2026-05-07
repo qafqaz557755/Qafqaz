@@ -167,19 +167,28 @@ export default function ProductGrid({ onProductClick }: { onProductClick: (produ
   useEffect(() => {
     const q = query(
       collection(db, 'products'), 
-      orderBy('createdAt', 'desc'),
-      fsLimit(displayLimit)
+      fsLimit(displayLimit + 10) // Fetch a few more to account for hidden ones
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedProducts = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          image: data.images?.[0] || '',
-        } as Product;
-      });
+      const fetchedProducts = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            image: data.images?.[0] || data.image || '',
+            createdAt: data.createdAt?.toDate?.() || new Date(0)
+          } as Product;
+        })
+        .filter(p => !p.isHidden)
+        .sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return dateB - dateA;
+        })
+        .slice(0, displayLimit);
+
       setProducts(fetchedProducts);
       setLoading(false);
     }, (error) => {

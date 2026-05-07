@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Minus, Plus, ArrowLeft, ShoppingBag, Youtube, Play } from 'lucide-react';
 import { cn, getYoutubeId } from '../lib/utils';
 import { useCart } from '../context/CartContext';
-import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { doc, onSnapshot, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 
 export default function ProductPage() {
@@ -25,37 +25,42 @@ export default function ProductPage() {
     window.scrollTo(0, 0);
     if (!id) return;
 
-    const fetchProduct = async () => {
-      try {
-        const docRef = doc(db, 'products', id);
-        const docSnap = await getDoc(docRef);
-        
+    const q = query(
+      collection(db, 'products'), 
+      limit(4)
+    );
+    
+    const unsubProduct = onSnapshot(doc(db, 'products', id), 
+      (docSnap) => {
         if (docSnap.exists()) {
           const productData = { id: docSnap.id, ...docSnap.data() } as Product;
           setProduct(productData);
-          
-          // Fetch similar
-          const q = query(
-            collection(db, 'products'), 
-            where('category', '==', productData.category),
-            limit(4)
-          );
-          const similarSnap = await getDocs(q);
-          setSimilarProducts(
-            similarSnap.docs
-              .map(d => ({ id: d.id, ...d.data() } as Product))
-              .filter(p => p.id !== id)
-              .slice(0, 2)
-          );
+        } else {
+          setProduct(null);
         }
-      } catch (error) {
-        console.error(error);
-      } finally {
+        setLoading(false);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, `products/${id}`);
         setLoading(false);
       }
-    };
+    );
 
-    fetchProduct();
+    const unsubSimilar = onSnapshot(q, (similarSnap) => {
+      setSimilarProducts(
+        similarSnap.docs
+          .map(d => ({ id: d.id, ...d.data() } as Product))
+          .filter(p => p.id !== id)
+          .slice(0, 2)
+      );
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, 'products');
+    });
+
+    return () => {
+      unsubProduct();
+      unsubSimilar();
+    };
   }, [id]);
 
   if (loading) return (

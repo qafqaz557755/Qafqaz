@@ -13,7 +13,8 @@ import {
   getDoc,
   onSnapshot,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  documentId
 } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { 
@@ -52,59 +53,77 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      fetchOrders();
-      fetchWishlist();
-      
-      const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+      const qOrders = query(
+        collection(db, 'orders'),
+        where('userId', '==', user.uid)
       );
-      const unsubscribeNotes = onSnapshot(q, (snapshot) => {
-        setNotifications(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const unsubscribeOrders = onSnapshot(qOrders, (snapshot) => {
+        const sortedOrders = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(0)
+          };
+        }).sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return dateB - dateA;
+        });
+        setOrders(sortedOrders);
+      }, (error) => handleFirestoreError(error, OperationType.GET, 'orders'));
+
+      const qNotes = query(
+        collection(db, 'notifications'),
+        where('userId', '==', user.uid)
+      );
+      const unsubscribeNotes = onSnapshot(qNotes, (snapshot) => {
+        const sortedNotes = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(0)
+          };
+        }).sort((a, b) => {
+          const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+          const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+          return dateB - dateA;
+        });
+        setNotifications(sortedNotes);
       }, (error) => handleFirestoreError(error, OperationType.GET, 'notifications'));
 
-      return () => unsubscribeNotes();
+      return () => {
+        unsubscribeOrders();
+        unsubscribeNotes();
+      };
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && wishlistIds.length > 0) {
+      const targetIds = wishlistIds.slice(0, 30);
+      const q = query(
+        collection(db, 'products'),
+        where(documentId(), 'in', targetIds)
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setWishlistProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+        setLoading(false);
+      }, (err) => {
+        handleFirestoreError(err, OperationType.GET, 'products');
+        setLoading(false);
+      });
+      
+      return () => unsubscribe();
+    } else if (user && wishlistIds.length === 0) {
+      setWishlistProducts([]);
+      setLoading(false);
     }
   }, [user, wishlistIds]);
 
-  const fetchOrders = async () => {
-    try {
-      if (!user) return;
-      const q = query(
-        collection(db, 'orders'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, 'orders');
-    }
-  };
 
-  const fetchWishlist = async () => {
-    try {
-      if (wishlistIds.length === 0) {
-        setWishlistProducts([]);
-        setLoading(false);
-        return;
-      }
-      const products: Product[] = [];
-      for (const id of wishlistIds) {
-        const docRef = doc(db, 'products', id);
-        const snapshot = await getDoc(docRef);
-        if (snapshot.exists()) {
-          products.push({ id: snapshot.id, ...snapshot.data() } as Product);
-        }
-      }
-      setWishlistProducts(products);
-      setLoading(false);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.GET, 'products');
-      setLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     auth.signOut();

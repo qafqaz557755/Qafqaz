@@ -19,20 +19,20 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
-import { auth, db, storage } from '../lib/firebase';
+import { auth, db, storage, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   collection, 
   addDoc, 
   serverTimestamp, 
   doc, 
-  getDoc, 
+  onSnapshot, 
   runTransaction,
   query,
   where,
   getDocs
 } from 'firebase/firestore';
 
-// ... (OperationType, FirestoreErrorInfo, handleFirestoreError enum/interfaces) ...
+
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 
@@ -89,22 +89,17 @@ export default function CheckoutPage() {
       });
     }
 
-    const fetchSettings = async () => {
-      try {
-        const docSnap = await getDoc(doc(db, 'settings', 'global'));
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setCardNumber(data.cardNumber || '');
-          setTelegramConfig({
-            token: data.telegramToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
-            chatId: data.telegramChatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
-          });
-        }
-      } catch (err) {
-        console.error('Settings fetch error:', err);
+    const unsubSettings = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setCardNumber(data.cardNumber || '');
+        setTelegramConfig({
+          token: data.telegramToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
+          chatId: data.telegramChatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || ''
+        });
       }
-    };
-    fetchSettings();
+    }, (err) => handleFirestoreError(err, OperationType.GET, 'settings/global'));
+    return unsubSettings;
   }, [items, isSuccess, navigate, userData]);
 
   const applyPromo = async () => {
@@ -246,6 +241,8 @@ ${orderData.promoCode ? `<b>🎟️ Promo:</b> ${orderData.promoCode}` : ''}
     try {
       // 1. Transaction to reduce stock
       setSubmitStatus('Stok yoxlanılır...');
+      let finalOrderData: any = null;
+
       await runTransaction(db, async (transaction) => {
         for (const item of items) {
           const productRef = doc(db, 'products', item.id);
@@ -263,7 +260,7 @@ ${orderData.promoCode ? `<b>🎟️ Promo:</b> ${orderData.promoCode}` : ''}
         }
 
         // 2. Prepare Order Data
-        const orderData = {
+        finalOrderData = {
           userId: user?.uid || null,
           customerName: formData.name,
           phone: formData.phone,
@@ -280,31 +277,41 @@ ${orderData.promoCode ? `<b>🎟️ Promo:</b> ${orderData.promoCode}` : ''}
         // 3. Save to Firestore
         const ordersRef = collection(db, 'orders');
         const newOrderDoc = doc(ordersRef);
-        transaction.set(newOrderDoc, orderData);
-
-        // 4. Send notifications afterwards (outside transaction, but we start it)
-        setTimeout(async () => {
-           await sendOrderToTelegram(orderData);
-           
-           // Handle photos
-           const processAndSend = async (file: File, label: string) => {
-             try {
-               const options = { maxSizeMB: 0.2, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.5 };
-               const compressedFile = await imageCompression(file, options);
-               const reader = new FileReader();
-               const base64Promise = new Promise<string>((resolve) => {
-                 reader.onloadend = () => resolve(reader.result as string);
-                 reader.readAsDataURL(compressedFile);
-               });
-               const base64 = await base64Promise;
-               await sendPhotoToTelegram(base64, `<b>${label}:</b> ${orderData.customerName} (${orderData.phone})`);
-             } catch (err) {}
-           };
-
-           if (logoFile) { await new Promise(r => setTimeout(r, 800)); await processAndSend(logoFile, 'Müştəri Logosu'); }
-           if (receipt) { await new Promise(r => setTimeout(r, 800)); await processAndSend(receipt, 'Ödəniş Çeki'); }
-        }, 0);
+        transaction.set(newOrderDoc, finalOrderData);
       });
+
+      // 4. Send notifications AFTER successful transaction
+      if (finalOrderData) {
+        setSubmitStatus('Sifariş tamamlanır...');
+        try {
+          await sendOrderToTelegram(finalOrderData);
+          
+          const processAndSend = async (file: File, label: string) => {
+            try {
+              const options = { maxSizeMB: 0.2, maxWidthOrHeight: 1024, useWebWorker: true, initialQuality: 0.5 };
+              const compressedFile = await imageCompression(file, options);
+              const reader = new FileReader();
+              const base64Promise = new Promise<string>((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(compressedFile);
+              });
+              const base64 = await base64Promise;
+              await sendPhotoToTelegram(base64, `<b>${label}:</b> ${finalOrderData.customerName} (${finalOrderData.phone})`);
+            } catch (err) {
+              console.warn('Photo send error:', err);
+            }
+          };
+
+          if (logoFile) {
+            await processAndSend(logoFile, 'Müştəri Logosu');
+          }
+          if (receipt) {
+            await processAndSend(receipt, 'Ödəniş Çeki');
+          }
+        } catch (notifErr) {
+          console.warn('Notification error (non-blocking):', notifErr);
+        }
+      }
 
       setIsSuccess(true);
       clearCart();

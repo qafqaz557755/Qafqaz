@@ -22,15 +22,26 @@ export default function AllProductsPage() {
     window.scrollTo(0, 0);
     
     const qProducts = query(
-      collection(db, 'products'),
-      orderBy('createdAt', 'desc')
+      collection(db, 'products')
     );
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        image: doc.data().images?.[0] || '' 
-      } as Product)));
+      const allProducts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          image: data.images?.[0] || data.image || '',
+          createdAt: data.createdAt?.toDate?.() || new Date(0)
+        } as Product;
+      })
+      .filter(p => !p.isHidden)
+      .sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return dateB - dateA;
+      });
+
+      setProducts(allProducts);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.GET, 'products'));
 

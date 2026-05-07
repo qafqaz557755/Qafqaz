@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import firebaseConfigFallback from '../../firebase-applet-config.json';
 
@@ -29,6 +29,21 @@ export const db = initializeFirestore(app, {
 export const storage = getStorage(app);
 export const auth = getAuth();
 
+// Test connection on boot as per guidelines
+async function testConnection() {
+  try {
+    // Only run test if we are in a browser environment
+    if (typeof window !== 'undefined') {
+      await getDocFromServer(doc(db, '_connection_test_', 'ping'));
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('offline')) {
+      console.warn("Firestore initially reported offline. This is common in some preview environments and may resolve as the app loads.");
+    }
+  }
+}
+testConnection();
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -56,8 +71,18 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  // Extract error message string
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Check if it's an offline error
+  const isOffline = 
+    errorMessage.toLowerCase().includes('offline') || 
+    errorMessage.toLowerCase().includes('client is offline') ||
+    errorMessage.toLowerCase().includes('network-error') ||
+    errorMessage.toLowerCase().includes('could not connect');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -72,6 +97,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
+
+  if (isOffline) {
+    console.warn(`[Firestore Offline] ${operationType} on ${path}: ${errorMessage}`);
+    return; // Don't throw for offline errors
+  }
+
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

@@ -4,7 +4,7 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 interface UserData {
   uid: string;
@@ -32,26 +32,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            setUserData(userDoc.data() as UserData);
-          } else {
-            setUserData(null);
+    let unsubscribeUserData: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
+      
+      if (unsubscribeUserData) {
+        unsubscribeUserData();
+        unsubscribeUserData = null;
+      }
+
+      if (authUser) {
+        unsubscribeUserData = onSnapshot(doc(db, 'users', authUser.uid), 
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setUserData(docSnap.data() as UserData);
+            } else {
+              setUserData(null);
+            }
+            setLoading(false);
+          },
+          (err) => {
+            // Handle error without necessarily throwing if it's just "offline"
+            if (err.message.includes('offline')) {
+              console.warn("Firestore offline - user data will sync once back online.");
+            } else {
+              // Only report other errors
+              console.error("UserData snapshot error:", err);
+            }
+            setLoading(false);
           }
-        } catch (err) {
-          handleFirestoreError(err, OperationType.GET, `users/${user.uid}`);
-        }
+        );
       } else {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeUserData) unsubscribeUserData();
+    };
   }, []);
 
   const isAdmin = userData?.role === 'admin' || user?.email === (import.meta.env.VITE_ADMIN_EMAIL || 'qqardasov61@gmail.com');

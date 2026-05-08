@@ -38,10 +38,12 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      onClick={() => onClick(product)}
-      className="group flex flex-col gap-3 cursor-pointer"
+      className="group flex flex-col gap-3"
     >
-      <div className="relative aspect-square overflow-hidden bg-white rounded-3xl shadow-sm border border-black/5 group-hover:shadow-xl transition-all duration-500">
+      <div 
+        onClick={() => onClick(product)}
+        className="relative aspect-square overflow-hidden bg-white rounded-3xl shadow-sm border border-black/5 group-hover:shadow-xl transition-all duration-500 cursor-pointer"
+      >
         <img
           src={mainImage}
           alt={product.name}
@@ -82,12 +84,15 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
       </div>
       
         <div className="flex flex-col gap-1 px-1">
-        <h3 className="text-sm md:text-base font-semibold text-charcoal leading-tight truncate group-hover:text-brand-blue transition-colors">
+        <h3 
+          onClick={() => onClick(product)}
+          className="text-sm md:text-base font-semibold text-charcoal leading-tight truncate group-hover:text-brand-blue transition-colors cursor-pointer"
+        >
           {product.name}
         </h3>
         
         <div className="flex flex-col gap-3 mt-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onClick(product)}>
             {product.discountPrice && product.discountPrice > 0 ? (
               <>
                 <span className="text-base md:text-lg font-black text-brand-blue tabular-nums">
@@ -113,6 +118,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     addToCart(product);
                   }}
@@ -131,6 +137,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
                 >
                   <button
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       updateQuantity(product.id, quantity - 1);
                     }}
@@ -141,6 +148,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
                   <span className="font-bold text-sm tabular-nums">{quantity}</span>
                   <button
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       updateQuantity(product.id, quantity + 1);
                     }}

@@ -164,7 +164,7 @@ export default function CheckoutPage() {
     let message = '';
     try {
       message = `
-<b>📦 YENİ SİFARİŞ!</b>
+<b>📦 YENİ SİFARİŞ! (#${orderData.id?.slice(-6) || '???'})</b>
 
 <b>👤 Müştəri:</b> ${escapeHtml(orderData.customerName || 'Bilinmir')}
 <b>📞 Nömrə:</b> ${escapeHtml(orderData.phone || 'Bilinmir')}
@@ -277,6 +277,7 @@ ${orderData.promoCode ? `<b>🎟️ Promo:</b> ${orderData.promoCode}` : ''}
         // 3. Save to Firestore
         const ordersRef = collection(db, 'orders');
         const newOrderDoc = doc(ordersRef);
+        finalOrderData.id = newOrderDoc.id;
         transaction.set(newOrderDoc, finalOrderData);
       });
 

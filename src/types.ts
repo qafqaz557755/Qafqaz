@@ -12,6 +12,8 @@ export interface Product {
   videoUrl?: string;
   logoRequired?: boolean;
   isHidden?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface Category {

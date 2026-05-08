@@ -109,7 +109,11 @@ export default function ProfilePage() {
       );
       
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        setWishlistProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+        setWishlistProducts(
+          snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Product))
+            .filter(p => !p.isHidden)
+        );
         setLoading(false);
       }, (err) => {
         handleFirestoreError(err, OperationType.GET, 'products');
@@ -328,7 +332,7 @@ export default function ProfilePage() {
                   wishlistProducts.map(product => (
                     <div key={product.id} className="group bg-off-white/30 rounded-3xl border border-charcoal/5 overflow-hidden flex h-32 hover:border-brand-blue/20 transition-all cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
                       <div className="w-32 h-full">
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                        <img src={product.images?.[0] || product.image || ''} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="p-4 flex flex-col justify-center flex-grow">
                         <h3 className="font-bold text-charcoal mb-1 line-clamp-1">{product.name}</h3>
@@ -352,7 +356,7 @@ export default function ProfilePage() {
                     <div className="space-y-4">
                       {cartItems.map(item => (
                         <div key={item.id} className="flex items-center gap-4 p-4 bg-off-white/30 rounded-2xl border border-charcoal/5">
-                          <img src={item.images[0]} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
+                          <img src={item.images?.[0] || item.image || ''} alt={item.name} className="w-16 h-16 rounded-xl object-cover" />
                           <div className="flex-grow">
                             <h4 className="font-bold text-sm text-charcoal">{item.name}</h4>
                             <p className="text-xs text-charcoal/40">{item.quantity} ədəd</p>

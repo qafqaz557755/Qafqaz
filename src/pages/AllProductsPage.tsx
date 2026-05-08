@@ -7,9 +7,11 @@ import { cn } from '../lib/utils';
 import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product, Category } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export default function AllProductsPage() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(location.state?.category || null);
@@ -24,17 +26,33 @@ export default function AllProductsPage() {
     const qProducts = query(
       collection(db, 'products')
     );
+
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      const allProducts = snapshot.docs.map(doc => {
-        const data = doc.data();
+      const allProducts = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        let createdAtDate = new Date(0);
+        
+        try {
+          if (data.createdAt?.toDate) {
+            createdAtDate = data.createdAt.toDate();
+          } else if (data.createdAt instanceof Date) {
+            createdAtDate = data.createdAt;
+          } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+            createdAtDate = new Date(data.createdAt);
+          }
+        } catch (e) {
+          console.error("Error parsing date for product", docSnap.id, e);
+        }
+
         return { 
-          id: doc.id, 
+          id: docSnap.id, 
           ...data,
           image: data.images?.[0] || data.image || '',
-          createdAt: data.createdAt?.toDate?.() || new Date(0)
+          isHidden: data.isHidden ?? false,
+          createdAt: createdAtDate
         } as Product;
       })
-      .filter(p => !p.isHidden)
+      .filter(p => isAdmin || !p.isHidden)
       .sort((a, b) => {
         const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
         const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
@@ -54,7 +72,7 @@ export default function AllProductsPage() {
       unsubProducts();
       unsubCats();
     };
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (location.state?.category) {

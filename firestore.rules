@@ -25,7 +25,7 @@ service cloud.firestore {
     // Products
     match /products/{productId} {
       allow get: if isValidId(productId) && (resource == null || !resource.data.get('isHidden', false) || isAdmin());
-      allow list: if !resource.data.get('isHidden', false) || isAdmin();
+      allow list: if true;
       allow create: if isAdmin() && isValidId(productId);
       allow update: if (isAdmin() || (
         // Allow anyone to reduce stock (for orders)

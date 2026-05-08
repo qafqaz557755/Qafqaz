@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, ChevronLeft, Minus, Plus, ArrowLeft, ShoppingBag, Youtube, Play } from 'lucide-react';
 import { cn, getYoutubeId } from '../lib/utils';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { doc, onSnapshot, collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
@@ -11,6 +12,7 @@ import { Product } from '../types';
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const { addToCart, updateQuantity, items } = useCart();
   
   const [product, setProduct] = useState<Product | null>(null);
@@ -47,12 +49,20 @@ export default function ProductPage() {
     );
 
     const unsubSimilar = onSnapshot(q, (similarSnap) => {
-      setSimilarProducts(
-        similarSnap.docs
-          .map(d => ({ id: d.id, ...d.data() } as Product))
-          .filter(p => p.id !== id)
-          .slice(0, 2)
-      );
+          setSimilarProducts(
+            similarSnap.docs
+              .map(d => {
+                const data = d.data();
+                return { 
+                  id: d.id, 
+                  ...data,
+                  image: data.images?.[0] || data.image || '',
+                  isHidden: data.isHidden || false
+                } as Product;
+              })
+              .filter(p => p.id !== id && (isAdmin || !p.isHidden))
+              .slice(0, 2)
+          );
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, 'products');
     });
@@ -138,11 +148,12 @@ export default function ProductPage() {
               >
                 {mediaItems[currentImageIndex].type === 'video' ? (
                   getYoutubeId(mediaItems[currentImageIndex].url) ? (
-                    <div className="w-full h-full relative">
+                    <div className="w-full h-full relative bg-black">
                       <iframe
-                        src={`https://www.youtube.com/embed/${getYoutubeId(mediaItems[currentImageIndex].url)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(mediaItems[currentImageIndex].url)}&controls=0&modestbranding=1&rel=0`}
+                        src={`https://www.youtube.com/embed/${getYoutubeId(mediaItems[currentImageIndex].url)}?autoplay=1&mute=1&loop=1&playlist=${getYoutubeId(mediaItems[currentImageIndex].url)}&modestbranding=1&rel=0`}
                         className="w-full h-full border-none"
-                        allow="autoplay; encrypted-media"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
                         title="Product Video"
                       />
                     </div>

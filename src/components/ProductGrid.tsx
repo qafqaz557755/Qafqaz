@@ -22,7 +22,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
   const cartItem = items.find(item => item.id === product.id);
   const quantity = cartItem?.quantity || 0;
   const isWishlisted = isInWishlist(product.id);
-  const mainImage = product.images?.[0] || product.image;
+  const mainImage = product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1584346133934-a3afd2a33c4c?q=80&w=800';
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -160,6 +160,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
 
 export default function ProductGrid({ onProductClick }: { onProductClick: (product: Product) => void }) {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [displayLimit, setDisplayLimit] = useState(12);
@@ -167,21 +168,40 @@ export default function ProductGrid({ onProductClick }: { onProductClick: (produ
   useEffect(() => {
     const q = query(
       collection(db, 'products'), 
-      fsLimit(displayLimit + 10) // Fetch a few more to account for hidden ones
+      fsLimit(displayLimit + 10)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (isAdmin) {
+        console.log(`Fetched ${snapshot.docs.length} products from Firebase`);
+      }
+      
       const fetchedProducts = snapshot.docs
-        .map(doc => {
-          const data = doc.data();
+        .map(docSnap => {
+          const data = docSnap.data();
+          let createdAtDate = new Date(0);
+          
+          try {
+            if (data.createdAt?.toDate) {
+              createdAtDate = data.createdAt.toDate();
+            } else if (data.createdAt instanceof Date) {
+              createdAtDate = data.createdAt;
+            } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+              createdAtDate = new Date(data.createdAt);
+            }
+          } catch (e) {
+            console.error("Error parsing date for product", docSnap.id, e);
+          }
+
           return {
-            id: doc.id,
+            id: docSnap.id,
             ...data,
             image: data.images?.[0] || data.image || '',
-            createdAt: data.createdAt?.toDate?.() || new Date(0)
+            isHidden: data.isHidden ?? false,
+            createdAt: createdAtDate
           } as Product;
         })
-        .filter(p => !p.isHidden)
+        .filter(p => isAdmin || !p.isHidden)
         .sort((a, b) => {
           const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
           const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
@@ -197,7 +217,7 @@ export default function ProductGrid({ onProductClick }: { onProductClick: (produ
     });
 
     return () => unsubscribe();
-  }, [displayLimit]);
+  }, [displayLimit, isAdmin]);
 
   if (loading) return (
     <div className="max-w-7xl mx-auto px-6 py-24 text-center">

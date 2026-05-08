@@ -308,21 +308,87 @@ export default function AdminPanel() {
 
 // Dummy components for now
 function AdminDashboard() {
+  const seedData = async () => {
+    if (!confirm('Həqiqətən nümunə məlumatları (kateqoriya və məhsullar) əlavə etmək istəyirsiniz?')) return;
+    
+    try {
+      // 1. Categories
+      const cats = [
+        { name: 'Salfetlər', image: 'https://images.unsplash.com/photo-1584346133934-a3afd2a33c4c?q=80&w=800' },
+        { name: 'Qablar', image: 'https://images.unsplash.com/photo-1590635446299-4c17882fb3a7?q=80&w=800' },
+        { name: 'Əlcəklər', image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=800' }
+      ];
+      
+      for (const cat of cats) {
+        await addDoc(collection(db, 'categories'), cat);
+      }
+      
+      // 2. Products
+      const products = [
+        {
+          name: 'Premium Kağız Salfet',
+          category: 'Salfetlər',
+          description: 'Çox qatlı, yumşaq və yüksək hopdurucu xüsusiyyətli premium kağız salfetlər.',
+          price: 4.5,
+          stock: 100,
+          images: ['https://images.unsplash.com/photo-1584346133934-a3afd2a33c4c?q=80&w=800'],
+          isHidden: false,
+          createdAt: serverTimestamp()
+        },
+        {
+          name: 'Ekoloji Birdəfəlik Boşqab',
+          category: 'Qablar',
+          description: 'Təbiət dostu, bioparçalanan materialdan hazırlanmış möhkəm birdəfəlik boşqablar.',
+          price: 12.0,
+          stock: 50,
+          images: ['https://images.unsplash.com/photo-1590635446299-4c17882fb3a7?q=80&w=800'],
+          isHidden: false,
+          createdAt: serverTimestamp()
+        }
+      ];
+      
+      for (const p of products) {
+        await addDoc(collection(db, 'products'), p);
+      }
+      
+      alert('Nümunə məlumatlar uğurla əlavə edildi! Səhifəni yeniləyin və ya tabs dəyişin.');
+    } catch (err) {
+      console.error(err);
+      alert('Xəta baş verdi: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {[
-        { label: 'Ümumi Satış', value: '1,240.50 AZN', delta: '+12%', color: 'bg-green-500' },
-        { label: 'Sifarişlər', value: '42', delta: '+5', color: 'bg-brand-blue' },
-        { label: 'Stokda qalan', value: '156', delta: '-2', color: 'bg-orange-500' },
-      ].map((stat, i) => (
-        <div key={i} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white flex flex-col gap-4">
-          <span className="text-[10px] font-black uppercase tracking-widest text-charcoal/40">{stat.label}</span>
-          <div className="flex items-end justify-between">
-            <span className="text-3xl font-black text-charcoal">{stat.value}</span>
-            <span className={cn("px-2 py-1 rounded-full text-[10px] font-black text-white", stat.color)}>{stat.delta}</span>
+    <div className="flex flex-col gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { label: 'Ümumi Satış', value: '1,240.50 AZN', delta: '+12%', color: 'bg-green-500' },
+          { label: 'Sifarişlər', value: '42', delta: '+5', color: 'bg-brand-blue' },
+          { label: 'Stokda qalan', value: '156', delta: '-2', color: 'bg-orange-500' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white flex flex-col gap-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-charcoal/40">{stat.label}</span>
+            <div className="flex items-end justify-between">
+              <span className="text-3xl font-black text-charcoal">{stat.value}</span>
+              <span className={cn("px-2 py-1 rounded-full text-[10px] font-black text-white", stat.color)}>{stat.delta}</span>
+            </div>
           </div>
+        ))}
+      </div>
+      
+      <div className="bg-brand-blue/5 p-12 rounded-[3.5rem] border border-brand-blue/10 flex flex-col items-center text-center gap-6">
+        <Database size={48} className="text-brand-blue/40" />
+        <div className="flex flex-col gap-2">
+          <h4 className="text-xl font-bold text-charcoal">Bazanı doldurun</h4>
+          <p className="text-charcoal/40 max-w-sm">Əgər baza boşdursa, nümunə kateqoriya və məhsulları əlavə edərək saytın görünüşünü yoxlaya bilərsiniz.</p>
         </div>
-      ))}
+        <button 
+          onClick={seedData}
+          className="px-10 py-4 bg-brand-blue text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-brand-blue/20 hover:scale-[1.02] active:scale-95 transition-all"
+        >
+          Nümunə Məlumatları Əlavə Et
+        </button>
+      </div>
     </div>
   );
 }
@@ -348,12 +414,26 @@ function AdminProducts() {
   useEffect(() => {
     const qProducts = query(collection(db, 'products'));
     const unsubProducts = onSnapshot(qProducts, (snapshot) => {
-      const allProducts = snapshot.docs.map(doc => {
-        const data = doc.data();
+      const allProducts = snapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        let createdAtDate = new Date(0);
+        
+        try {
+          if (data.createdAt?.toDate) {
+            createdAtDate = data.createdAt.toDate();
+          } else if (data.createdAt instanceof Date) {
+            createdAtDate = data.createdAt;
+          } else if (typeof data.createdAt === 'string' || typeof data.createdAt === 'number') {
+            createdAtDate = new Date(data.createdAt);
+          }
+        } catch (e) {
+          console.error("Error parsing date for product", docSnap.id, e);
+        }
+
         return { 
-          id: doc.id, 
+          id: docSnap.id, 
           ...data,
-          createdAt: data.createdAt?.toDate?.() || new Date(0)
+          createdAt: createdAtDate
         };
       }).sort((a, b) => {
         const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
@@ -541,15 +621,15 @@ function AdminProducts() {
               {product.videoUrl ? (
                 getYoutubeId(product.videoUrl) ? (
                   <iframe
-                    src={`https://www.youtube.com/embed/${getYoutubeId(product.videoUrl)}?mute=1&controls=0`}
+                    src={`https://www.youtube.com/embed/${getYoutubeId(product.videoUrl)}?mute=1&modestbranding=1&rel=0`}
                     className="w-full h-full border-none pointer-events-none"
-                    allow="autoplay; encrypted-media"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   />
                 ) : (
                   <video src={product.videoUrl} muted autoPlay loop playsInline className="w-full h-full object-cover" />
                 )
               ) : (
-                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img src={product.images?.[0] || product.image || ''} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               )}
               {product.isHidden && <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-black text-xs uppercase tracking-widest">GİZLİ</div>}
               {product.logoRequired && <div className="absolute top-4 right-4 bg-brand-blue text-white p-2 rounded-full shadow-lg"><Layers size={14} /></div>}

@@ -33,12 +33,25 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
     toggleWishlist(product.id);
   };
 
+  const handleCartAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Cart Add Clicked for", product.name);
+    addToCart(product);
+  };
+
+  const handleQtyUpdate = (e: React.MouseEvent, newQty: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    updateQuantity(product.id, newQty);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group flex flex-col gap-3"
+      className="group flex flex-col gap-3 relative"
     >
       <div 
         onClick={() => onClick(product)}
@@ -55,7 +68,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
         {/* Wishlist Button */}
         <button 
           onClick={handleWishlist}
-          className="absolute top-3 right-3 w-10 h-10 bg-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-sm border border-black/5 hover:scale-110 active:scale-95 transition-all z-10"
+          className="absolute top-3 right-3 w-10 h-10 bg-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-sm border border-black/5 hover:scale-110 active:scale-95 transition-all z-20"
         >
           <Heart 
             className={cn(
@@ -65,7 +78,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
           />
         </button>
 
-        <div className="absolute top-3 left-3 flex flex-col gap-1">
+        <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
           <div className="bg-white/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest text-charcoal/60 w-fit">
             {product.category}
           </div>
@@ -109,7 +122,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
             )}
           </div>
           
-          <div className="h-11">
+          <div className="h-11 relative z-30">
             <AnimatePresence mode="wait">
               {quantity === 0 ? (
                 <motion.button
@@ -117,11 +130,7 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    addToCart(product);
-                  }}
+                  onClick={handleCartAdd}
                   className="w-full h-full flex items-center justify-center bg-brand-blue text-white rounded-2xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-brand-blue/20 hover:shadow-brand-blue/40 transition-all active:scale-95"
                 >
                   Səbətə əlavə et
@@ -136,22 +145,14 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      updateQuantity(product.id, quantity - 1);
-                    }}
+                    onClick={(e) => handleQtyUpdate(e, quantity - 1)}
                     className="w-9 h-9 flex items-center justify-center bg-white rounded-xl shadow-sm text-charcoal active:scale-90 transition-transform"
                   >
                     <Minus size={16} />
                   </button>
                   <span className="font-bold text-sm tabular-nums">{quantity}</span>
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      updateQuantity(product.id, quantity + 1);
-                    }}
+                    onClick={(e) => handleQtyUpdate(e, quantity + 1)}
                     className="w-9 h-9 flex items-center justify-center bg-white rounded-xl shadow-sm text-charcoal active:scale-90 transition-transform"
                   >
                     <Plus size={16} />

@@ -35,7 +35,12 @@ export default function ProductPage() {
     const unsubProduct = onSnapshot(doc(db, 'products', id), 
       (docSnap) => {
         if (docSnap.exists()) {
-          const productData = { id: docSnap.id, ...docSnap.data() } as Product;
+          const data = docSnap.data();
+          const productData = { 
+            id: docSnap.id, 
+            ...data,
+            image: data.image || data.images?.[0] || ''
+          } as Product;
           setProduct(productData);
         } else {
           setProduct(null);
@@ -94,9 +99,11 @@ export default function ProductPage() {
   }
 
   const handleAddToCart = () => {
-    const currentQtyInCart = cartItem?.quantity || 0;
-    updateQuantity(product.id, currentQtyInCart + quantity);
+    addToCart(product, quantity);
     setQuantity(1);
+    
+    // Optional: show some feedback or navigate to cart
+    // navigate('/cart');
   };
 
   const images = product.images || [product.image];

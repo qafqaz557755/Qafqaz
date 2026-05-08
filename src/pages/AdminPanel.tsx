@@ -456,9 +456,11 @@ function AdminProducts() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const imageList = formData.images.split(',').map(s => s.trim()).filter(Boolean);
     const data = {
       ...formData,
-      images: formData.images.split(',').map(s => s.trim()).filter(Boolean),
+      images: imageList,
+      image: imageList[0] || '',
       price: Number(formData.price),
       discountPrice: Number(formData.discountPrice),
       stock: Number(formData.stock),
